@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DI 점심 맛집</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>🍱 DI 점심 맛집</h1>
+    <button id="openAddBtn" class="btn-primary">맛집 등록</button>
+  </header>
+
+  <section class="filters">
+    <select id="filterCategory" aria-label="카테고리 필터">
+      <option value="">카테고리 전체</option>
+      <option value="한식">한식</option>
+      <option value="중식">중식</option>
+      <option value="일식">일식</option>
+      <option value="양식">양식</option>
+      <option value="분식">분식</option>
+      <option value="카페">카페</option>
+      <option value="단체예약">단체예약</option>
+      <option value="기타">기타</option>
+    </select>
+    <select id="filterDistance" aria-label="거리 필터">
+      <option value="">거리 전체</option>
+      <option value="5분이내">5분이내</option>
+      <option value="10분이내">10분이내</option>
+      <option value="15분이상">15분이상</option>
+    </select>
+    <select id="filterPrice" aria-label="가격대 필터">
+      <option value="">가격 전체</option>
+      <option value="~1만원">~1만원</option>
+      <option value="1~1.5만원">1~1.5만원</option>
+      <option value="1.5만원+">1.5만원+</option>
+    </select>
+    <button id="resetFilterBtn" class="btn-ghost">전체 보기</button>
+    <span id="resultCount" class="result-count"></span>
+  </section>
+
+  <main id="list" class="grid" aria-live="polite"></main>
+
+  <!-- 등록 모달 -->
+  <div id="addModal" class="modal hidden">
+    <div class="modal-content">
+      <h2>맛집 등록</h2>
+      <form id="addForm">
+        <label>이름 *
+          <input type="text" id="fName" required />
+        </label>
+        <label>카테고리
+          <select id="fCategory">
+            <option value="한식">한식</option>
+            <option value="중식">중식</option>
+            <option value="일식">일식</option>
+            <option value="양식">양식</option>
+            <option value="분식">분식</option>
+            <option value="카페">카페</option>
+            <option value="단체예약">단체예약</option>
+            <option value="기타">기타</option>
+          </select>
+        </label>
+        <label>거리
+          <select id="fDistance">
+            <option value="5분이내">5분이내</option>
+            <option value="10분이내">10분이내</option>
+            <option value="15분이상">15분이상</option>
+          </select>
+        </label>
+        <label>가격대
+          <select id="fPrice">
+            <option value="~1만원">~1만원</option>
+            <option value="1~1.5만원">1~1.5만원</option>
+            <option value="1.5만원+">1.5만원+</option>
+          </select>
+        </label>
+        <label>메모
+          <input type="text" id="fMemo" placeholder="대표메뉴·한줄평" />
+        </label>
+        <div class="modal-actions">
+          <button type="button" id="cancelAddBtn" class="btn-ghost">취소</button>
+          <button type="submit" class="btn-primary">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="configWarning" class="config-warning hidden">
+    ⚠️ Firebase 설정이 필요합니다. README.md를 참고해 firebase-config.js를 채워주세요.
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
