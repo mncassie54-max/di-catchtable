@@ -123,6 +123,20 @@ addForm.addEventListener("submit", async (e) => {
   }
 });
 
+// --- 삭제 (이벤트 위임) ---
+listEl.addEventListener("click", async (e) => {
+  const btn = e.target.closest(".delete");
+  if (!btn) return;
+  const id = btn.dataset.id;
+  if (!confirm("이 맛집을 삭제할까요?")) return;
+  try {
+    await deleteDoc(doc(db, "restaurants", id));
+  } catch (err) {
+    console.error("삭제 실패:", err);
+    alert("삭제에 실패했습니다. 콘솔을 확인해주세요.");
+  }
+});
+
 function init() {
   if (!isConfigured) {
     document.getElementById("configWarning").classList.remove("hidden");
