@@ -1,5 +1,5 @@
 // ↓↓↓ Kakao Developers에서 발급받은 JavaScript 키로 교체하세요 (README.md 참고) ↓↓↓
-export const KAKAO_APP_KEY = "YOUR_KAKAO_JS_KEY";
+export const KAKAO_APP_KEY = "320df390f8992c4183604cf0a4b2a0ca";
 // ↑↑↑ 여기까지 교체 ↑↑↑
 
 export const isMapConfigured = KAKAO_APP_KEY !== "YOUR_KAKAO_JS_KEY";

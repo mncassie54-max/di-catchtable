@@ -28,7 +28,12 @@ h1, h2 { font-family: "Jua", "Noto Sans KR", sans-serif; font-weight: 400; }
   backdrop-filter: blur(8px); border-bottom: 1px solid var(--border);
   position: sticky; top: 0; z-index: 5;
 }
-.logo { font-size: 24px; margin: 0; color: var(--ink); letter-spacing: -0.5px; }
+.logo { font-size: 24px; margin: 0; color: var(--accent-dark); letter-spacing: -0.5px; }
+.logo .tagline {
+  font-family: "Noto Sans KR", sans-serif; font-size: 13px; font-weight: 500;
+  color: var(--muted); margin-left: 4px;
+}
+@media (max-width: 480px) { .logo .tagline { display: none; } }
 
 /* 지도 */
 .map-section { padding: 18px 22px 4px; }
