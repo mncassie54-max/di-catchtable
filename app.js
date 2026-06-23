@@ -78,6 +78,51 @@ function subscribe() {
   });
 }
 
+// --- 등록 모달 ---
+const addModal = document.getElementById("addModal");
+const openAddBtn = document.getElementById("openAddBtn");
+const cancelAddBtn = document.getElementById("cancelAddBtn");
+const addForm = document.getElementById("addForm");
+
+function openModal() {
+  if (!isConfigured) {
+    alert("Firebase 설정이 필요합니다. README.md를 참고해주세요.");
+    return;
+  }
+  addModal.classList.remove("hidden");
+  document.getElementById("fName").focus();
+}
+function closeModal() {
+  addModal.classList.add("hidden");
+  addForm.reset();
+}
+
+openAddBtn.addEventListener("click", openModal);
+cancelAddBtn.addEventListener("click", closeModal);
+addModal.addEventListener("click", (e) => {
+  if (e.target === addModal) closeModal();
+});
+
+addForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = document.getElementById("fName").value.trim();
+  if (!name) return;
+  try {
+    await addDoc(collection(db, "restaurants"), {
+      name,
+      category: document.getElementById("fCategory").value,
+      distance: document.getElementById("fDistance").value,
+      price: document.getElementById("fPrice").value,
+      memo: document.getElementById("fMemo").value.trim(),
+      createdAt: serverTimestamp(),
+    });
+    closeModal();
+  } catch (err) {
+    console.error("등록 실패:", err);
+    alert("등록에 실패했습니다. 콘솔을 확인해주세요.");
+  }
+});
+
 function init() {
   if (!isConfigured) {
     document.getElementById("configWarning").classList.remove("hidden");
