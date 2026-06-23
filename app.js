@@ -1,8 +1,15 @@
 import { db, isConfigured } from "./firebase-config.js";
+import { isMapConfigured } from "./map-config.js";
+import * as map from "./map.js";
 import {
   collection, onSnapshot, query, orderBy,
   addDoc, deleteDoc, doc, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const CATEGORY_EMOJI = {
+  "한식": "🍚", "중식": "🍜", "일식": "🍣", "양식": "🍝",
+  "분식": "🥟", "카페": "☕", "단체예약": "🍻", "기타": "🍴",
+};
 
 const listEl = document.getElementById("list");
 const resultCountEl = document.getElementById("resultCount");
@@ -11,7 +18,9 @@ const filterDistance = document.getElementById("filterDistance");
 const filterPrice = document.getElementById("filterPrice");
 const resetFilterBtn = document.getElementById("resetFilterBtn");
 
-let allRestaurants = []; // 메모리 캐시 (Firestore 최신 스냅샷)
+let allRestaurants = [];  // 메모리 캐시 (Firestore 최신 스냅샷)
+let mapReady = false;
+let selectedLocation = null;  // 등록 모달에서 선택한 위치
 
 function getFilters() {
   return {
@@ -40,21 +49,24 @@ function render() {
   const filtered = applyFilters(allRestaurants);
   resultCountEl.textContent = `${filtered.length}곳`;
   if (filtered.length === 0) {
-    listEl.innerHTML = `<div class="empty">조건에 맞는 맛집이 없어요. 필터를 바꾸거나 새로 등록해보세요.</div>`;
-    return;
+    listEl.innerHTML = `<div class="empty">조건에 맞는 맛집이 없어요 🥲<br/>필터를 바꾸거나 새로 등록해보세요.</div>`;
+  } else {
+    listEl.innerHTML = filtered.map((r) => `
+      <article class="card">
+        <button class="delete" data-id="${r.id}" title="삭제">✕</button>
+        <span class="emoji">${CATEGORY_EMOJI[r.category] || "🍴"}</span>
+        <h3>${escapeHtml(r.name)}</h3>
+        <div class="tags">
+          <span class="tag tag-cat">${escapeHtml(r.category)}</span>
+          <span class="tag tag-dist">${escapeHtml(r.distance)}</span>
+          <span class="tag tag-price">${escapeHtml(r.price)}</span>
+        </div>
+        ${r.memo ? `<p class="memo">${escapeHtml(r.memo)}</p>` : ""}
+        ${r.address ? `<p class="addr">📍 ${escapeHtml(r.address)}</p>` : ""}
+      </article>
+    `).join("");
   }
-  listEl.innerHTML = filtered.map((r) => `
-    <article class="card">
-      <button class="delete" data-id="${r.id}" title="삭제">✕</button>
-      <h3>${escapeHtml(r.name)}</h3>
-      <div class="tags">
-        <span class="tag">${escapeHtml(r.category)}</span>
-        <span class="tag">${escapeHtml(r.distance)}</span>
-        <span class="tag">${escapeHtml(r.price)}</span>
-      </div>
-      ${r.memo ? `<p class="memo">${escapeHtml(r.memo)}</p>` : ""}
-    </article>
-  `).join("");
+  if (mapReady) map.renderPins(filtered);
 }
 
 [filterCategory, filterDistance, filterPrice].forEach((el) =>
@@ -91,10 +103,13 @@ function openModal() {
   }
   addModal.classList.remove("hidden");
   document.getElementById("fName").focus();
+  if (mapReady) map.openPicker();
 }
 function closeModal() {
   addModal.classList.add("hidden");
   addForm.reset();
+  selectedLocation = null;
+  if (mapReady) map.resetPicker();
 }
 
 openAddBtn.addEventListener("click", openModal);
@@ -107,15 +122,21 @@ addForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const name = document.getElementById("fName").value.trim();
   if (!name) return;
+  const payload = {
+    name,
+    category: document.getElementById("fCategory").value,
+    distance: document.getElementById("fDistance").value,
+    price: document.getElementById("fPrice").value,
+    memo: document.getElementById("fMemo").value.trim(),
+    createdAt: serverTimestamp(),
+  };
+  if (selectedLocation) {
+    payload.lat = selectedLocation.lat;
+    payload.lng = selectedLocation.lng;
+    payload.address = selectedLocation.address;
+  }
   try {
-    await addDoc(collection(db, "restaurants"), {
-      name,
-      category: document.getElementById("fCategory").value,
-      distance: document.getElementById("fDistance").value,
-      price: document.getElementById("fPrice").value,
-      memo: document.getElementById("fMemo").value.trim(),
-      createdAt: serverTimestamp(),
-    });
+    await addDoc(collection(db, "restaurants"), payload);
     closeModal();
   } catch (err) {
     console.error("등록 실패:", err);
@@ -137,13 +158,42 @@ listEl.addEventListener("click", async (e) => {
   }
 });
 
+// --- 지도 설정 ---
+async function setupMap() {
+  const notice = document.getElementById("mapNotice");
+  if (!isMapConfigured) {
+    notice.textContent = "🗺️ 카카오맵 키가 필요해요. README의 '지도 설정'을 참고해 map-config.js를 채워주세요.";
+    notice.classList.remove("hidden");
+    return;
+  }
+  try {
+    await map.init({ mainMapId: "mainMap" });
+    map.setupPicker({
+      inputId: "placeSearch",
+      btnId: "placeSearchBtn",
+      resultsId: "placeResults",
+      miniMapId: "pickerMap",
+      addressOutId: "selectedAddr",
+      onSelect: (loc) => { selectedLocation = loc; },
+    });
+    document.getElementById("locationField").classList.remove("hidden");
+    mapReady = true;
+    render();  // 이미 로드된 데이터가 있으면 핀 표시
+  } catch (err) {
+    console.error("지도 로드 실패:", err);
+    notice.textContent = "🗺️ 지도를 불러오지 못했어요. 카카오 키와 도메인 등록을 확인해주세요.";
+    notice.classList.remove("hidden");
+  }
+}
+
 function init() {
   if (!isConfigured) {
     document.getElementById("configWarning").classList.remove("hidden");
     resultCountEl.textContent = "";
-    return;
+  } else {
+    subscribe();
   }
-  subscribe();
+  setupMap();
 }
 
 init();

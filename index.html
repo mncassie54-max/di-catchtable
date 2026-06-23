@@ -4,34 +4,42 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DI 점심 맛집</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="topbar">
-    <h1>🍱 DI 점심 맛집</h1>
-    <button id="openAddBtn" class="btn-primary">맛집 등록</button>
+    <h1 class="logo">🍱 DI 점심 뭐 먹지?</h1>
+    <button id="openAddBtn" class="btn-primary">＋ 맛집 등록</button>
   </header>
+
+  <section class="map-section">
+    <div id="mainMap" class="main-map"></div>
+    <div id="mapNotice" class="map-notice hidden"></div>
+  </section>
 
   <section class="filters">
     <select id="filterCategory" aria-label="카테고리 필터">
-      <option value="">카테고리 전체</option>
-      <option value="한식">한식</option>
-      <option value="중식">중식</option>
-      <option value="일식">일식</option>
-      <option value="양식">양식</option>
-      <option value="분식">분식</option>
-      <option value="카페">카페</option>
-      <option value="단체예약">단체예약</option>
-      <option value="기타">기타</option>
+      <option value="">🍽️ 카테고리 전체</option>
+      <option value="한식">🍚 한식</option>
+      <option value="중식">🍜 중식</option>
+      <option value="일식">🍣 일식</option>
+      <option value="양식">🍝 양식</option>
+      <option value="분식">🥟 분식</option>
+      <option value="카페">☕ 카페</option>
+      <option value="단체예약">🍻 단체예약</option>
+      <option value="기타">🍴 기타</option>
     </select>
     <select id="filterDistance" aria-label="거리 필터">
-      <option value="">거리 전체</option>
+      <option value="">🚶 거리 전체</option>
       <option value="5분이내">5분이내</option>
       <option value="10분이내">10분이내</option>
       <option value="15분이상">15분이상</option>
     </select>
     <select id="filterPrice" aria-label="가격대 필터">
-      <option value="">가격 전체</option>
+      <option value="">💰 가격 전체</option>
       <option value="~1만원">~1만원</option>
       <option value="1~1.5만원">1~1.5만원</option>
       <option value="1.5만원+">1.5만원+</option>
@@ -45,21 +53,33 @@
   <!-- 등록 모달 -->
   <div id="addModal" class="modal hidden">
     <div class="modal-content">
-      <h2>맛집 등록</h2>
+      <h2>맛집 등록 🍳</h2>
       <form id="addForm">
         <label>이름 *
-          <input type="text" id="fName" required />
+          <input type="text" id="fName" required placeholder="예: 그랜드김밥" />
         </label>
+
+        <fieldset id="locationField" class="location-field hidden">
+          <legend>위치 (선택)</legend>
+          <div class="place-search">
+            <input type="text" id="placeSearch" placeholder="가게 이름·주소로 검색" />
+            <button type="button" id="placeSearchBtn" class="btn-ghost">검색</button>
+          </div>
+          <ul id="placeResults" class="place-results"></ul>
+          <div id="pickerMap" class="picker-map"></div>
+          <p id="selectedAddr" class="selected-addr"></p>
+        </fieldset>
+
         <label>카테고리
           <select id="fCategory">
-            <option value="한식">한식</option>
-            <option value="중식">중식</option>
-            <option value="일식">일식</option>
-            <option value="양식">양식</option>
-            <option value="분식">분식</option>
-            <option value="카페">카페</option>
-            <option value="단체예약">단체예약</option>
-            <option value="기타">기타</option>
+            <option value="한식">🍚 한식</option>
+            <option value="중식">🍜 중식</option>
+            <option value="일식">🍣 일식</option>
+            <option value="양식">🍝 양식</option>
+            <option value="분식">🥟 분식</option>
+            <option value="카페">☕ 카페</option>
+            <option value="단체예약">🍻 단체예약</option>
+            <option value="기타">🍴 기타</option>
           </select>
         </label>
         <label>거리
