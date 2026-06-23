@@ -1,16 +1,15 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// ↓↓↓ Firebase 콘솔에서 발급받은 값으로 교체하세요 (README.md 참고) ↓↓↓
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyAEwHLR1ebzFOilYrdZSK1KqOiIXyvQXU4",
+  authDomain: "di-catchtable.firebaseapp.com",
+  databaseURL: "https://di-catchtable-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "di-catchtable",
+  storageBucket: "di-catchtable.firebasestorage.app",
+  messagingSenderId: "372674251247",
+  appId: "1:372674251247:web:7dc61e33fbe07a58668e1a",
 };
-// ↑↑↑ 여기까지 교체 ↑↑↑
 
 export const isConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY";
 
