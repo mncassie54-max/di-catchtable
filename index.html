@@ -53,7 +53,7 @@
   <!-- 등록 모달 -->
   <div id="addModal" class="modal hidden">
     <div class="modal-content">
-      <h2>맛집 등록 🍳</h2>
+      <h2 id="modalTitle">맛집 등록 🍳</h2>
       <form id="addForm">
         <label>이름 *
           <input type="text" id="fName" required placeholder="예: 그랜드김밥" />
@@ -107,7 +107,7 @@
         </label>
         <div class="modal-actions">
           <button type="button" id="cancelAddBtn" class="btn-ghost">취소</button>
-          <button type="submit" class="btn-primary">저장</button>
+          <button type="submit" class="btn-primary" id="submitBtn">저장</button>
         </div>
       </form>
     </div>

@@ -3,7 +3,7 @@ import { isMapConfigured } from "./map-config.js";
 import * as map from "./map.js";
 import {
   collection, onSnapshot, query, orderBy,
-  addDoc, deleteDoc, doc, serverTimestamp,
+  addDoc, deleteDoc, updateDoc, doc, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const CATEGORY_EMOJI = {
@@ -89,24 +89,61 @@ function subscribe() {
   });
 }
 
-// --- 등록 모달 ---
+// --- 등록/수정 모달 ---
 const addModal = document.getElementById("addModal");
 const openAddBtn = document.getElementById("openAddBtn");
 const cancelAddBtn = document.getElementById("cancelAddBtn");
 const addForm = document.getElementById("addForm");
+const modalTitle = document.getElementById("modalTitle");
+const submitBtn = document.getElementById("submitBtn");
 
+let editingId = null;  // null이면 신규 등록, 값이 있으면 수정
+
+// 신규 등록 모달 열기
 function openModal() {
   if (!isConfigured) {
     alert("Firebase 설정이 필요합니다. README.md를 참고해주세요.");
     return;
   }
+  editingId = null;
+  modalTitle.textContent = "맛집 등록 🍳";
+  submitBtn.textContent = "저장";
   addModal.classList.remove("hidden");
   document.getElementById("fName").focus();
   if (mapReady) map.openPicker();
 }
+
+// 수정 모달 열기 (기존 값으로 채움)
+function openEditModal(r) {
+  closeDetail();
+  editingId = r.id;
+  modalTitle.textContent = "맛집 수정 ✏️";
+  submitBtn.textContent = "수정 저장";
+  document.getElementById("fName").value = r.name || "";
+  document.getElementById("fCategory").value = r.category || "기타";
+  document.getElementById("fDistance").value = r.distance || "5분이내";
+  document.getElementById("fPrice").value = r.price || "~1만원";
+  document.getElementById("fRecommend").value = r.recommendedMenu || "";
+  document.getElementById("fPhone").value = r.phone || "";
+  document.getElementById("fMemo").value = r.memo || "";
+  const hasCoords = typeof r.lat === "number" && typeof r.lng === "number";
+  if (hasCoords) {
+    selectedLocation = { lat: r.lat, lng: r.lng, address: r.address || "" };
+    document.getElementById("selectedAddr").textContent = r.address ? "📍 " + r.address : "";
+  } else {
+    selectedLocation = null;
+  }
+  addModal.classList.remove("hidden");
+  if (mapReady) {
+    map.openPicker();
+    if (hasCoords) map.showPickerLocation(r.lat, r.lng);
+  }
+}
+
 function closeModal() {
   addModal.classList.add("hidden");
   addForm.reset();
+  editingId = null;
   selectedLocation = null;
   if (mapReady) map.resetPicker();
 }
@@ -121,7 +158,7 @@ addForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const name = document.getElementById("fName").value.trim();
   if (!name) return;
-  const payload = {
+  const data = {
     name,
     category: document.getElementById("fCategory").value,
     distance: document.getElementById("fDistance").value,
@@ -129,19 +166,22 @@ addForm.addEventListener("submit", async (e) => {
     recommendedMenu: document.getElementById("fRecommend").value.trim(),
     phone: document.getElementById("fPhone").value.trim(),
     memo: document.getElementById("fMemo").value.trim(),
-    createdAt: serverTimestamp(),
   };
   if (selectedLocation) {
-    payload.lat = selectedLocation.lat;
-    payload.lng = selectedLocation.lng;
-    payload.address = selectedLocation.address;
+    data.lat = selectedLocation.lat;
+    data.lng = selectedLocation.lng;
+    data.address = selectedLocation.address;
   }
   try {
-    await addDoc(collection(db, "restaurants"), payload);
+    if (editingId) {
+      await updateDoc(doc(db, "restaurants", editingId), data);
+    } else {
+      await addDoc(collection(db, "restaurants"), { ...data, createdAt: serverTimestamp() });
+    }
     closeModal();
   } catch (err) {
-    console.error("등록 실패:", err);
-    alert("등록에 실패했습니다. 콘솔을 확인해주세요.");
+    console.error("저장 실패:", err);
+    alert("저장에 실패했습니다. 콘솔을 확인해주세요.");
   }
 });
 
@@ -178,9 +218,12 @@ function openDetail(id) {
     ${hasCoords ? `<div id="detailMap" class="detail-map"></div>` : ""}
     <div class="modal-actions">
       <button type="button" class="btn-danger" id="detailDeleteBtn">삭제</button>
+      <button type="button" class="btn-primary" id="detailEditBtn">수정</button>
     </div>
   `;
   detailModal.classList.remove("hidden");
+
+  document.getElementById("detailEditBtn").addEventListener("click", () => openEditModal(r));
 
   document.getElementById("detailDeleteBtn").addEventListener("click", async () => {
     if (!confirm("이 맛집을 삭제할까요?")) return;

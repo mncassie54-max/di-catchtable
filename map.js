@@ -153,6 +153,19 @@ export function openPicker() {
   setTimeout(() => pickerMap && pickerMap.relayout(), 0);
 }
 
+// 수정 모드: 기존 좌표를 picker 지도에 표시
+export function showPickerLocation(lat, lng) {
+  ensurePickerMap();
+  const pos = new kakao.maps.LatLng(lat, lng);
+  pickerMarker.setPosition(pos);
+  pickerMarker.setMap(pickerMap);
+  setTimeout(() => {
+    pickerMap.relayout();
+    pickerMap.setCenter(pos);
+    pickerMap.setLevel(3);
+  }, 0);
+}
+
 // 모달을 닫거나 저장한 뒤 picker 초기화
 export function resetPicker() {
   if (!pickerCfg) return;
