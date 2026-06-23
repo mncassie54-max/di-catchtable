@@ -1,0 +1,9 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // restaurants 컬렉션: 누구나 읽기/쓰기 (공용 점심 맛집 용도, 만료 없음)
+    match /restaurants/{doc} {
+      allow read, write: if true;
+    }
+  }
+}
