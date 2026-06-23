@@ -133,6 +133,20 @@ function selectPlace(p) {
   pickerCfg.onSelect({ lat, lng, address: addr, placeName: p.place_name });
 }
 
+// 상세 모달: 단일 맛집 위치를 보여주는 지도
+export function showDetailMap(containerId, lat, lng, name) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const pos = new kakao.maps.LatLng(lat, lng);
+  const m = new kakao.maps.Map(el, { center: pos, level: 3 });
+  const marker = new kakao.maps.Marker({ position: pos, map: m });
+  const info = new kakao.maps.InfoWindow({
+    content: `<div class="map-info">${esc(name)}</div>`,
+  });
+  info.open(m, marker);
+  setTimeout(() => { m.relayout(); m.setCenter(pos); }, 0);
+}
+
 // 모달이 열릴 때 미니 지도 크기 보정
 export function openPicker() {
   ensurePickerMap();

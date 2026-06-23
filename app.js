@@ -52,8 +52,7 @@ function render() {
     listEl.innerHTML = `<div class="empty">조건에 맞는 맛집이 없어요 🥲<br/>필터를 바꾸거나 새로 등록해보세요.</div>`;
   } else {
     listEl.innerHTML = filtered.map((r) => `
-      <article class="card">
-        <button class="delete" data-id="${r.id}" title="삭제">✕</button>
+      <article class="card" data-id="${r.id}">
         <span class="emoji">${CATEGORY_EMOJI[r.category] || "🍴"}</span>
         <h3>${escapeHtml(r.name)}</h3>
         <div class="tags">
@@ -61,8 +60,8 @@ function render() {
           <span class="tag tag-dist">${escapeHtml(r.distance)}</span>
           <span class="tag tag-price">${escapeHtml(r.price)}</span>
         </div>
-        ${r.memo ? `<p class="memo">${escapeHtml(r.memo)}</p>` : ""}
-        ${r.address ? `<p class="addr">📍 ${escapeHtml(r.address)}</p>` : ""}
+        ${r.recommendedMenu ? `<p class="rec">👍 ${escapeHtml(r.recommendedMenu)}</p>` : ""}
+        ${r.memo ? `<p class="memo">📝 ${escapeHtml(r.memo)}</p>` : ""}
       </article>
     `).join("");
   }
@@ -127,6 +126,8 @@ addForm.addEventListener("submit", async (e) => {
     category: document.getElementById("fCategory").value,
     distance: document.getElementById("fDistance").value,
     price: document.getElementById("fPrice").value,
+    recommendedMenu: document.getElementById("fRecommend").value.trim(),
+    phone: document.getElementById("fPhone").value.trim(),
     memo: document.getElementById("fMemo").value.trim(),
     createdAt: serverTimestamp(),
   };
@@ -144,18 +145,67 @@ addForm.addEventListener("submit", async (e) => {
   }
 });
 
-// --- 삭제 (이벤트 위임) ---
-listEl.addEventListener("click", async (e) => {
-  const btn = e.target.closest(".delete");
-  if (!btn) return;
-  const id = btn.dataset.id;
-  if (!confirm("이 맛집을 삭제할까요?")) return;
-  try {
-    await deleteDoc(doc(db, "restaurants", id));
-  } catch (err) {
-    console.error("삭제 실패:", err);
-    alert("삭제에 실패했습니다. 콘솔을 확인해주세요.");
+// --- 상세 모달 ---
+const detailModal = document.getElementById("detailModal");
+const detailBody = document.getElementById("detailBody");
+const detailClose = document.getElementById("detailClose");
+
+function closeDetail() {
+  detailModal.classList.add("hidden");
+  detailBody.innerHTML = "";
+}
+
+function telHref(phone) {
+  return "tel:" + phone.replace(/[^0-9+]/g, "");
+}
+
+function openDetail(id) {
+  const r = allRestaurants.find((x) => x.id === id);
+  if (!r) return;
+  const hasCoords = typeof r.lat === "number" && typeof r.lng === "number";
+  detailBody.innerHTML = `
+    <span class="emoji">${CATEGORY_EMOJI[r.category] || "🍴"}</span>
+    <h2>${escapeHtml(r.name)}</h2>
+    <div class="tags">
+      <span class="tag tag-cat">${escapeHtml(r.category)}</span>
+      <span class="tag tag-dist">${escapeHtml(r.distance)}</span>
+      <span class="tag tag-price">${escapeHtml(r.price)}</span>
+    </div>
+    ${r.recommendedMenu ? `<p class="detail-row">👍 <b>추천메뉴</b> · ${escapeHtml(r.recommendedMenu)}</p>` : ""}
+    ${r.memo ? `<p class="detail-row">📝 ${escapeHtml(r.memo)}</p>` : ""}
+    ${r.address ? `<p class="detail-row">📍 ${escapeHtml(r.address)}</p>` : ""}
+    ${r.phone ? `<p class="detail-row">📞 <a href="${escapeHtml(telHref(r.phone))}">${escapeHtml(r.phone)}</a></p>` : ""}
+    ${hasCoords ? `<div id="detailMap" class="detail-map"></div>` : ""}
+    <div class="modal-actions">
+      <button type="button" class="btn-danger" id="detailDeleteBtn">삭제</button>
+    </div>
+  `;
+  detailModal.classList.remove("hidden");
+
+  document.getElementById("detailDeleteBtn").addEventListener("click", async () => {
+    if (!confirm("이 맛집을 삭제할까요?")) return;
+    try {
+      await deleteDoc(doc(db, "restaurants", id));
+      closeDetail();
+    } catch (err) {
+      console.error("삭제 실패:", err);
+      alert("삭제에 실패했습니다. 콘솔을 확인해주세요.");
+    }
+  });
+
+  if (mapReady && hasCoords) {
+    map.showDetailMap("detailMap", r.lat, r.lng, r.name);
   }
+}
+
+listEl.addEventListener("click", (e) => {
+  const card = e.target.closest(".card");
+  if (!card) return;
+  openDetail(card.dataset.id);
+});
+detailClose.addEventListener("click", closeDetail);
+detailModal.addEventListener("click", (e) => {
+  if (e.target === detailModal) closeDetail();
 });
 
 // --- 지도 설정 ---

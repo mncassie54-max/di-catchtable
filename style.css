@@ -75,10 +75,11 @@ h1, h2 { font-family: "Jua", "Noto Sans KR", sans-serif; font-weight: 400; }
 }
 .card {
   background: var(--card); border: 1px solid var(--border); border-radius: 20px;
-  padding: 18px; position: relative; box-shadow: var(--shadow);
+  padding: 18px; position: relative; box-shadow: var(--shadow); cursor: pointer;
   transition: transform .16s ease, box-shadow .16s ease;
 }
 .card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+.card .rec { font-size: 14px; color: var(--accent-dark); font-weight: 500; margin: 0 0 6px; }
 .card .emoji { font-size: 30px; line-height: 1; display: block; margin-bottom: 8px; }
 .card h3 { margin: 0 0 10px; font-size: 18px; color: var(--ink); padding-right: 24px; }
 .card .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
@@ -123,7 +124,28 @@ h1, h2 { font-family: "Jua", "Noto Sans KR", sans-serif; font-weight: 400; }
 .modal-content {
   background: var(--card); border-radius: 26px; padding: 26px; width: 100%; max-width: 420px;
   max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  position: relative;
 }
+.modal-close {
+  position: absolute; top: 16px; right: 18px; border: none; background: none;
+  font-size: 18px; color: #c9bcc3; cursor: pointer; line-height: 1;
+}
+.modal-close:hover { color: var(--accent); }
+.detail-content .emoji { font-size: 34px; display: block; margin-bottom: 6px; }
+.detail-content h2 { margin: 0 0 12px; font-size: 22px; }
+.detail-row { font-size: 14px; color: #5f555f; margin: 10px 0; line-height: 1.5; }
+.detail-row a { color: var(--accent-dark); text-decoration: none; font-weight: 700; }
+.detail-row a:hover { text-decoration: underline; }
+.detail-map {
+  width: 100%; height: 200px; border-radius: 14px; margin-top: 14px;
+  border: 1px solid var(--border); overflow: hidden;
+}
+.btn-danger {
+  background: #fff; border: 1px solid #f3c9c2; color: #e0584a; border-radius: 999px;
+  padding: 10px 18px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+  transition: background .15s;
+}
+.btn-danger:hover { background: #fdeeec; }
 .modal-content h2 { margin: 0 0 18px; font-size: 22px; }
 .modal-content label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 14px; }
 .modal-content input, .modal-content select {

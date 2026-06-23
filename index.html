@@ -96,14 +96,28 @@
             <option value="1.5만원+">1.5만원+</option>
           </select>
         </label>
+        <label>추천메뉴
+          <input type="text" id="fRecommend" placeholder="예: 마라탕, 꿔바로우" />
+        </label>
+        <label>예약 전화번호
+          <input type="tel" id="fPhone" placeholder="예: 02-123-4567" />
+        </label>
         <label>메모
-          <input type="text" id="fMemo" placeholder="대표메뉴·한줄평" />
+          <input type="text" id="fMemo" placeholder="예: 예약필수 / 웨이팅 김" />
         </label>
         <div class="modal-actions">
           <button type="button" id="cancelAddBtn" class="btn-ghost">취소</button>
           <button type="submit" class="btn-primary">저장</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- 상세 모달 -->
+  <div id="detailModal" class="modal hidden">
+    <div class="modal-content detail-content">
+      <button type="button" class="modal-close" id="detailClose" aria-label="닫기">✕</button>
+      <div id="detailBody"></div>
     </div>
   </div>
 
