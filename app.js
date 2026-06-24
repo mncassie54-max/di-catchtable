@@ -14,29 +14,15 @@ const CATEGORY_EMOJI = {
 const listEl = document.getElementById("list");
 const resultCountEl = document.getElementById("resultCount");
 const filterCategory = document.getElementById("filterCategory");
-const filterDistance = document.getElementById("filterDistance");
-const filterPrice = document.getElementById("filterPrice");
 const resetFilterBtn = document.getElementById("resetFilterBtn");
 
 let allRestaurants = [];  // 메모리 캐시 (Firestore 최신 스냅샷)
 let mapReady = false;
 let selectedLocation = null;  // 등록 모달에서 선택한 위치
 
-function getFilters() {
-  return {
-    category: filterCategory.value,
-    distance: filterDistance.value,
-    price: filterPrice.value,
-  };
-}
-
 function applyFilters(items) {
-  const f = getFilters();
-  return items.filter((r) =>
-    (!f.category || r.category === f.category) &&
-    (!f.distance || r.distance === f.distance) &&
-    (!f.price || r.price === f.price)
-  );
+  const category = filterCategory.value;
+  return items.filter((r) => !category || r.category === category);
 }
 
 function escapeHtml(s) {
@@ -75,8 +61,6 @@ function render() {
         <h3>${escapeHtml(r.name)}</h3>
         <div class="tags">
           <span class="tag tag-cat">${escapeHtml(r.category)}</span>
-          <span class="tag tag-dist">${escapeHtml(r.distance)}</span>
-          <span class="tag tag-price">${escapeHtml(r.price)}</span>
         </div>
         ${w ? `<p class="walk">🚶 도보 약 ${w.min}분 · ${w.meters}m</p>` : ""}
         ${r.recommendedMenu ? `<p class="rec">👍 ${escapeHtml(r.recommendedMenu)}</p>` : ""}
@@ -88,13 +72,9 @@ function render() {
   if (mapReady) map.renderPins(filtered);
 }
 
-[filterCategory, filterDistance, filterPrice].forEach((el) =>
-  el.addEventListener("change", render)
-);
+filterCategory.addEventListener("change", render);
 resetFilterBtn.addEventListener("click", () => {
   filterCategory.value = "";
-  filterDistance.value = "";
-  filterPrice.value = "";
   render();
 });
 
@@ -141,14 +121,12 @@ function openEditModal(r) {
   submitBtn.textContent = "수정 저장";
   document.getElementById("fName").value = r.name || "";
   document.getElementById("fCategory").value = r.category || "기타";
-  document.getElementById("fDistance").value = r.distance || "5분이내";
-  document.getElementById("fPrice").value = r.price || "~1만원";
   document.getElementById("fRecommend").value = r.recommendedMenu || "";
   document.getElementById("fPhone").value = r.phone || "";
   document.getElementById("fMemo").value = r.memo || "";
   const hasCoords = typeof r.lat === "number" && typeof r.lng === "number";
   if (hasCoords) {
-    selectedLocation = { lat: r.lat, lng: r.lng, address: r.address || "" };
+    selectedLocation = { lat: r.lat, lng: r.lng, address: r.address || "", placeUrl: r.placeUrl || "" };
     document.getElementById("selectedAddr").textContent = r.address ? "📍 " + r.address : "";
   } else {
     selectedLocation = null;
@@ -181,8 +159,6 @@ addForm.addEventListener("submit", async (e) => {
   const data = {
     name,
     category: document.getElementById("fCategory").value,
-    distance: document.getElementById("fDistance").value,
-    price: document.getElementById("fPrice").value,
     recommendedMenu: document.getElementById("fRecommend").value.trim(),
     phone: document.getElementById("fPhone").value.trim(),
     memo: document.getElementById("fMemo").value.trim(),
@@ -191,6 +167,7 @@ addForm.addEventListener("submit", async (e) => {
     data.lat = selectedLocation.lat;
     data.lng = selectedLocation.lng;
     data.address = selectedLocation.address;
+    data.placeUrl = selectedLocation.placeUrl || "";
   }
   try {
     if (editingId) {
@@ -224,19 +201,25 @@ function openDetail(id) {
   if (!r) return;
   const hasCoords = typeof r.lat === "number" && typeof r.lng === "number";
   const w = walkInfo(r.lat, r.lng);
+  const kakaoUrl = r.placeUrl
+    ? r.placeUrl
+    : `https://map.kakao.com/link/search/${encodeURIComponent(r.name)}`;
+  const naverUrl = `https://map.naver.com/p/search/${encodeURIComponent(r.name)}`;
   detailBody.innerHTML = `
     <span class="emoji">${CATEGORY_EMOJI[r.category] || "🍴"}</span>
     <h2>${escapeHtml(r.name)}</h2>
     <div class="tags">
       <span class="tag tag-cat">${escapeHtml(r.category)}</span>
-      <span class="tag tag-dist">${escapeHtml(r.distance)}</span>
-      <span class="tag tag-price">${escapeHtml(r.price)}</span>
     </div>
     ${w ? `<p class="detail-row">🚶 <b>회사에서 도보</b> 약 ${w.min}분 · ${w.meters}m <span class="est">(직선거리 기준 추정)</span></p>` : ""}
     ${r.recommendedMenu ? `<p class="detail-row">👍 <b>추천메뉴</b> · ${escapeHtml(r.recommendedMenu)}</p>` : ""}
     ${r.memo ? `<p class="detail-row">📝 ${escapeHtml(r.memo)}</p>` : ""}
     ${r.address ? `<p class="detail-row">📍 ${escapeHtml(r.address)}</p>` : ""}
     ${r.phone ? `<p class="detail-row">📞 <a href="${escapeHtml(telHref(r.phone))}">${escapeHtml(r.phone)}</a></p>` : ""}
+    <div class="map-links">
+      <a href="${escapeHtml(kakaoUrl)}" target="_blank" rel="noopener">🗺️ 카카오맵</a>
+      <a href="${escapeHtml(naverUrl)}" target="_blank" rel="noopener">🟢 네이버지도</a>
+    </div>
     ${(mapReady && hasCoords) ? `<div id="detailMap" class="detail-map"></div>` : ""}
     <div class="modal-actions">
       <button type="button" class="btn-danger" id="detailDeleteBtn">삭제</button>
