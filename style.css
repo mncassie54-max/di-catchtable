@@ -79,7 +79,9 @@ h1, h2 { font-family: "Jua", "Noto Sans KR", sans-serif; font-weight: 400; }
   transition: transform .16s ease, box-shadow .16s ease;
 }
 .card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+.card .walk { font-size: 13px; color: #2f9e76; font-weight: 500; margin: 0 0 6px; }
 .card .rec { font-size: 14px; color: var(--accent-dark); font-weight: 500; margin: 0 0 6px; }
+.detail-row .est { color: var(--muted); font-size: 12px; font-weight: 400; }
 .card .emoji { font-size: 30px; line-height: 1; display: block; margin-bottom: 8px; }
 .card h3 { margin: 0 0 10px; font-size: 18px; color: var(--ink); padding-right: 24px; }
 .card .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
@@ -187,4 +189,25 @@ h1, h2 { font-family: "Jua", "Noto Sans KR", sans-serif; font-weight: 400; }
   background: #fff3cd; border: 1px solid #ffe69c; color: #664d03;
   padding: 13px 16px; border-radius: 14px; font-size: 14px; text-align: center;
   box-shadow: var(--shadow);
+}
+
+/* 모바일 대응 */
+@media (max-width: 600px) {
+  .topbar { padding: 12px 14px; }
+  .logo { font-size: 20px; }
+  .btn-primary { padding: 9px 14px; font-size: 13px; }
+  .map-section { padding: 12px 14px 4px; }
+  .main-map { height: 220px; border-radius: 18px; }
+  .filters { padding: 12px 14px; gap: 8px; }
+  .filters select { flex: 1 1 calc(50% - 4px); min-width: 0; }
+  .filters #resetFilterBtn { flex: 1 1 auto; }
+  .result-count { margin-left: 0; flex: 0 0 auto; }
+  .grid { grid-template-columns: 1fr; gap: 12px; padding: 8px 14px 40px; }
+  .modal { padding: 0; align-items: flex-end; }
+  .modal-content {
+    max-width: 100%; border-radius: 22px 22px 0 0; max-height: 92vh; padding: 22px 18px;
+  }
+  .detail-content .emoji { font-size: 30px; }
+  .detail-content h2 { font-size: 20px; }
+  .detail-map { height: 180px; }
 }

@@ -1,5 +1,5 @@
 import { db, isConfigured } from "./firebase-config.js";
-import { isMapConfigured } from "./map-config.js";
+import { isMapConfigured, COMPANY } from "./map-config.js";
 import * as map from "./map.js";
 import {
   collection, onSnapshot, query, orderBy,
@@ -45,13 +45,31 @@ function escapeHtml(s) {
   ));
 }
 
+// 회사(그랜드센트럴) 기준 도보 거리/시간 추정 (직선거리 × 우회보정, 도보 약 4km/h)
+function walkInfo(lat, lng) {
+  if (typeof lat !== "number" || typeof lng !== "number") return null;
+  const R = 6371000;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat - COMPANY.lat);
+  const dLng = toRad(lng - COMPANY.lng);
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(COMPANY.lat)) * Math.cos(toRad(lat)) * Math.sin(dLng / 2) ** 2;
+  const straight = 2 * R * Math.asin(Math.sqrt(a));
+  const walkM = straight * 1.3;                       // 도로 우회 보정
+  const min = Math.max(1, Math.round(walkM / 67));    // 도보 약 4km/h
+  const meters = Math.round(walkM / 10) * 10;
+  return { min, meters };
+}
+
 function render() {
   const filtered = applyFilters(allRestaurants);
   resultCountEl.textContent = `${filtered.length}곳`;
   if (filtered.length === 0) {
     listEl.innerHTML = `<div class="empty">조건에 맞는 맛집이 없어요 🥲<br/>필터를 바꾸거나 새로 등록해보세요.</div>`;
   } else {
-    listEl.innerHTML = filtered.map((r) => `
+    listEl.innerHTML = filtered.map((r) => {
+      const w = walkInfo(r.lat, r.lng);
+      return `
       <article class="card" data-id="${r.id}">
         <span class="emoji">${CATEGORY_EMOJI[r.category] || "🍴"}</span>
         <h3>${escapeHtml(r.name)}</h3>
@@ -60,10 +78,12 @@ function render() {
           <span class="tag tag-dist">${escapeHtml(r.distance)}</span>
           <span class="tag tag-price">${escapeHtml(r.price)}</span>
         </div>
+        ${w ? `<p class="walk">🚶 도보 약 ${w.min}분 · ${w.meters}m</p>` : ""}
         ${r.recommendedMenu ? `<p class="rec">👍 ${escapeHtml(r.recommendedMenu)}</p>` : ""}
         ${r.memo ? `<p class="memo">📝 ${escapeHtml(r.memo)}</p>` : ""}
       </article>
-    `).join("");
+    `;
+    }).join("");
   }
   if (mapReady) map.renderPins(filtered);
 }
@@ -203,6 +223,7 @@ function openDetail(id) {
   const r = allRestaurants.find((x) => x.id === id);
   if (!r) return;
   const hasCoords = typeof r.lat === "number" && typeof r.lng === "number";
+  const w = walkInfo(r.lat, r.lng);
   detailBody.innerHTML = `
     <span class="emoji">${CATEGORY_EMOJI[r.category] || "🍴"}</span>
     <h2>${escapeHtml(r.name)}</h2>
@@ -211,11 +232,12 @@ function openDetail(id) {
       <span class="tag tag-dist">${escapeHtml(r.distance)}</span>
       <span class="tag tag-price">${escapeHtml(r.price)}</span>
     </div>
+    ${w ? `<p class="detail-row">🚶 <b>회사에서 도보</b> 약 ${w.min}분 · ${w.meters}m <span class="est">(직선거리 기준 추정)</span></p>` : ""}
     ${r.recommendedMenu ? `<p class="detail-row">👍 <b>추천메뉴</b> · ${escapeHtml(r.recommendedMenu)}</p>` : ""}
     ${r.memo ? `<p class="detail-row">📝 ${escapeHtml(r.memo)}</p>` : ""}
     ${r.address ? `<p class="detail-row">📍 ${escapeHtml(r.address)}</p>` : ""}
     ${r.phone ? `<p class="detail-row">📞 <a href="${escapeHtml(telHref(r.phone))}">${escapeHtml(r.phone)}</a></p>` : ""}
-    ${hasCoords ? `<div id="detailMap" class="detail-map"></div>` : ""}
+    ${(mapReady && hasCoords) ? `<div id="detailMap" class="detail-map"></div>` : ""}
     <div class="modal-actions">
       <button type="button" class="btn-danger" id="detailDeleteBtn">삭제</button>
       <button type="button" class="btn-primary" id="detailEditBtn">수정</button>
