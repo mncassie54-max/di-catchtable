@@ -3,18 +3,45 @@ import { isMapConfigured, COMPANY } from "./map-config.js";
 import * as map from "./map.js";
 import {
   collection, onSnapshot, query, orderBy,
-  addDoc, deleteDoc, updateDoc, doc, serverTimestamp,
+  addDoc, deleteDoc, updateDoc, doc, serverTimestamp, arrayUnion,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const CATEGORY_EMOJI = {
   "한식": "🍚", "중식": "🍜", "일식": "🍣", "양식": "🍝",
   "분식": "🥟", "카페": "☕", "단체예약": "🍻", "기타": "🍴",
 };
+const DEFAULT_CATEGORIES = ["한식", "중식", "일식", "양식", "분식", "카페", "단체예약", "기타"];
+
+// 기본 카테고리 + 등록된 맛집들이 쓰는 커스텀 카테고리(중복 제거)
+function allCategories() {
+  const cats = [...DEFAULT_CATEGORIES];
+  allRestaurants.forEach((r) => {
+    if (r.category && !cats.includes(r.category)) cats.push(r.category);
+  });
+  return cats;
+}
 
 const listEl = document.getElementById("list");
 const resultCountEl = document.getElementById("resultCount");
 const filterCategory = document.getElementById("filterCategory");
 const resetFilterBtn = document.getElementById("resetFilterBtn");
+const fCategory = document.getElementById("fCategory");
+const fCategoryNew = document.getElementById("fCategoryNew");
+
+// 카테고리 select(필터 + 등록폼)을 현재 카테고리 목록으로 다시 채움
+function renderCategoryOptions() {
+  const cats = allCategories();
+  const opt = (c) => `<option value="${escapeHtml(c)}">${CATEGORY_EMOJI[c] || "🍴"} ${escapeHtml(c)}</option>`;
+
+  const curFilter = filterCategory.value;
+  filterCategory.innerHTML = `<option value="">🍽️ 카테고리 전체</option>` + cats.map(opt).join("");
+  filterCategory.value = curFilter;
+
+  // 등록/수정 모달이 열려있는 동안엔 사용자의 선택을 건드리지 않음
+  if (addModal.classList.contains("hidden")) {
+    fCategory.innerHTML = cats.map(opt).join("") + `<option value="__new__">➕ 직접 입력…</option>`;
+  }
+}
 
 let allRestaurants = [];  // 메모리 캐시 (Firestore 최신 스냅샷)
 let mapReady = false;
@@ -48,6 +75,7 @@ function walkInfo(lat, lng) {
 }
 
 function render() {
+  renderCategoryOptions();
   const filtered = applyFilters(allRestaurants);
   resultCountEl.textContent = `${filtered.length}곳`;
   if (filtered.length === 0) {
@@ -83,6 +111,11 @@ function subscribe() {
   onSnapshot(q, (snap) => {
     allRestaurants = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     render();
+    // 상세 모달이 열려 있으면 후기 등 최신 내용 반영 (후기 입력 중이면 건너뜀)
+    if (openDetailId && !detailModal.classList.contains("hidden")) {
+      const active = document.activeElement;
+      if (!active || active.id !== "reviewInput") openDetail(openDetailId);
+    }
   }, (err) => {
     console.error("Firestore 구독 실패:", err);
     alert("데이터를 불러오지 못했습니다. 콘솔을 확인해주세요.");
@@ -108,6 +141,7 @@ function openModal() {
   editingId = null;
   modalTitle.textContent = "맛집 등록 🍳";
   submitBtn.textContent = "저장";
+  fCategoryNew.classList.add("hidden");
   addModal.classList.remove("hidden");
   document.getElementById("fName").focus();
   if (mapReady) map.openPicker();
@@ -120,13 +154,13 @@ function openEditModal(r) {
   modalTitle.textContent = "맛집 수정 ✏️";
   submitBtn.textContent = "수정 저장";
   document.getElementById("fName").value = r.name || "";
-  document.getElementById("fCategory").value = r.category || "기타";
+  fCategory.value = r.category || "기타";
+  fCategoryNew.classList.add("hidden");
   document.getElementById("fRecommend").value = r.recommendedMenu || "";
-  document.getElementById("fPhone").value = r.phone || "";
   document.getElementById("fMemo").value = r.memo || "";
   const hasCoords = typeof r.lat === "number" && typeof r.lng === "number";
   if (hasCoords) {
-    selectedLocation = { lat: r.lat, lng: r.lng, address: r.address || "", placeUrl: r.placeUrl || "" };
+    selectedLocation = { lat: r.lat, lng: r.lng, address: r.address || "", placeUrl: r.placeUrl || "", phone: r.phone || "" };
     document.getElementById("selectedAddr").textContent = r.address ? "📍 " + r.address : "";
   } else {
     selectedLocation = null;
@@ -141,10 +175,21 @@ function openEditModal(r) {
 function closeModal() {
   addModal.classList.add("hidden");
   addForm.reset();
+  fCategoryNew.classList.add("hidden");
   editingId = null;
   selectedLocation = null;
   if (mapReady) map.resetPicker();
 }
+
+// 카테고리에서 '직접 입력' 선택 시 입력칸 표시
+fCategory.addEventListener("change", () => {
+  if (fCategory.value === "__new__") {
+    fCategoryNew.classList.remove("hidden");
+    fCategoryNew.focus();
+  } else {
+    fCategoryNew.classList.add("hidden");
+  }
+});
 
 openAddBtn.addEventListener("click", openModal);
 cancelAddBtn.addEventListener("click", closeModal);
@@ -156,11 +201,12 @@ addForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const name = document.getElementById("fName").value.trim();
   if (!name) return;
+  let category = fCategory.value;
+  if (category === "__new__") category = fCategoryNew.value.trim() || "기타";
   const data = {
     name,
-    category: document.getElementById("fCategory").value,
+    category,
     recommendedMenu: document.getElementById("fRecommend").value.trim(),
-    phone: document.getElementById("fPhone").value.trim(),
     memo: document.getElementById("fMemo").value.trim(),
   };
   if (selectedLocation) {
@@ -168,6 +214,7 @@ addForm.addEventListener("submit", async (e) => {
     data.lng = selectedLocation.lng;
     data.address = selectedLocation.address;
     data.placeUrl = selectedLocation.placeUrl || "";
+    data.phone = selectedLocation.phone || "";  // 카카오 검색 결과의 전화번호 자동 저장
   }
   try {
     if (editingId) {
@@ -187,13 +234,22 @@ const detailModal = document.getElementById("detailModal");
 const detailBody = document.getElementById("detailBody");
 const detailClose = document.getElementById("detailClose");
 
+let openDetailId = null;  // 현재 열려있는 상세 맛집 id
+
 function closeDetail() {
   detailModal.classList.add("hidden");
   detailBody.innerHTML = "";
+  openDetailId = null;
 }
 
 function telHref(phone) {
   return "tel:" + phone.replace(/[^0-9+]/g, "");
+}
+
+function formatReviewDate(at) {
+  if (!at) return "";
+  const d = new Date(at);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
 function openDetail(id) {
@@ -205,6 +261,13 @@ function openDetail(id) {
     ? r.placeUrl
     : `https://map.kakao.com/link/search/${encodeURIComponent(r.name)}`;
   const naverUrl = `https://map.naver.com/p/search/${encodeURIComponent(r.name)}`;
+  const reviews = Array.isArray(r.reviews) ? r.reviews : [];
+  const reviewsHtml = reviews.length
+    ? reviews.slice().reverse().map((rv) =>
+        `<li><span class="rv-text">${escapeHtml(rv.text)}</span><span class="rv-date">${formatReviewDate(rv.at)}</span></li>`
+      ).join("")
+    : `<li class="rv-empty">아직 후기가 없어요. 첫 후기를 남겨보세요! 🙌</li>`;
+  openDetailId = id;
   detailBody.innerHTML = `
     <span class="emoji">${CATEGORY_EMOJI[r.category] || "🍴"}</span>
     <h2>${escapeHtml(r.name)}</h2>
@@ -221,6 +284,14 @@ function openDetail(id) {
       <a href="${escapeHtml(naverUrl)}" target="_blank" rel="noopener">🟢 네이버지도</a>
     </div>
     ${(mapReady && hasCoords) ? `<div id="detailMap" class="detail-map"></div>` : ""}
+    <div class="reviews">
+      <h3 class="reviews-title">💬 다녀온 후기 (${reviews.length})</h3>
+      <ul class="review-list">${reviewsHtml}</ul>
+      <div class="review-add">
+        <input type="text" id="reviewInput" maxlength="100" placeholder="예: 마라탕 강추! 1시 이후 웨이팅 없어요" />
+        <button type="button" id="reviewAddBtn" class="btn-primary">남기기</button>
+      </div>
+    </div>
     <div class="modal-actions">
       <button type="button" class="btn-danger" id="detailDeleteBtn">삭제</button>
       <button type="button" class="btn-primary" id="detailEditBtn">수정</button>
@@ -229,6 +300,25 @@ function openDetail(id) {
   detailModal.classList.remove("hidden");
 
   document.getElementById("detailEditBtn").addEventListener("click", () => openEditModal(r));
+
+  const reviewInput = document.getElementById("reviewInput");
+  const submitReview = async () => {
+    const text = reviewInput.value.trim();
+    if (!text) return;
+    try {
+      await updateDoc(doc(db, "restaurants", id), {
+        reviews: arrayUnion({ text, at: Date.now() }),
+      });
+      reviewInput.value = "";
+    } catch (err) {
+      console.error("후기 저장 실패:", err);
+      alert("후기 저장에 실패했습니다. 콘솔을 확인해주세요.");
+    }
+  };
+  document.getElementById("reviewAddBtn").addEventListener("click", submitReview);
+  reviewInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); submitReview(); }
+  });
 
   document.getElementById("detailDeleteBtn").addEventListener("click", async () => {
     if (!confirm("이 맛집을 삭제할까요?")) return;
@@ -272,10 +362,7 @@ async function setupMap() {
       resultsId: "placeResults",
       miniMapId: "pickerMap",
       addressOutId: "selectedAddr",
-      onSelect: (loc) => {
-        selectedLocation = loc;
-        if (loc.phone) document.getElementById("fPhone").value = loc.phone;
-      },
+      onSelect: (loc) => { selectedLocation = loc; },
     });
     document.getElementById("locationField").classList.remove("hidden");
     mapReady = true;
