@@ -12,6 +12,28 @@ const CATEGORY_EMOJI = {
 };
 const DEFAULT_CATEGORIES = ["한식", "중식", "일식", "양식", "분식", "카페", "단체예약", "기타"];
 
+// 기본 카테고리 색상 (배경, 글자)
+const CATEGORY_COLORS = {
+  "한식": ["#fde8e8", "#d9534a"],
+  "중식": ["#fff0e0", "#e07b39"],
+  "일식": ["#e4f0ff", "#3b7dd8"],
+  "양식": ["#fbeaf3", "#c2569a"],
+  "분식": ["#fff6da", "#bf921a"],
+  "카페": ["#ece4dd", "#8a6d56"],
+  "단체예약": ["#e6f3ea", "#2f9e76"],
+  "기타": ["#ececf3", "#6b6f8a"],
+};
+
+// 카테고리 → {bg, fg}. 커스텀 카테고리는 이름 해시로 일관된 파스텔 색 배정.
+function categoryColor(cat) {
+  const fixed = CATEGORY_COLORS[cat];
+  if (fixed) return { bg: fixed[0], fg: fixed[1] };
+  let hash = 0;
+  for (let i = 0; i < String(cat).length; i++) hash = (hash * 31 + cat.charCodeAt(i)) % 360;
+  const h = (hash + 360) % 360;
+  return { bg: `hsl(${h}, 70%, 92%)`, fg: `hsl(${h}, 55%, 38%)` };
+}
+
 // 기본 카테고리 + 등록된 맛집들이 쓰는 커스텀 카테고리(중복 제거)
 function allCategories() {
   const cats = [...DEFAULT_CATEGORIES];
@@ -83,12 +105,13 @@ function render() {
   } else {
     listEl.innerHTML = filtered.map((r) => {
       const w = walkInfo(r.lat, r.lng);
+      const c = categoryColor(r.category);
       return `
       <article class="card" data-id="${r.id}">
         <span class="emoji">${CATEGORY_EMOJI[r.category] || "🍴"}</span>
         <h3>${escapeHtml(r.name)}</h3>
         <div class="tags">
-          <span class="tag tag-cat">${escapeHtml(r.category)}</span>
+          <span class="tag tag-cat" style="background:${c.bg};color:${c.fg}">${escapeHtml(r.category)}</span>
         </div>
         ${w ? `<p class="walk">🚶 도보 약 ${w.min}분 · ${w.meters}m</p>` : ""}
         ${r.recommendedMenu ? `<p class="rec">👍 ${escapeHtml(r.recommendedMenu)}</p>` : ""}
@@ -272,7 +295,7 @@ function openDetail(id) {
     <span class="emoji">${CATEGORY_EMOJI[r.category] || "🍴"}</span>
     <h2>${escapeHtml(r.name)}</h2>
     <div class="tags">
-      <span class="tag tag-cat">${escapeHtml(r.category)}</span>
+      <span class="tag tag-cat" style="background:${categoryColor(r.category).bg};color:${categoryColor(r.category).fg}">${escapeHtml(r.category)}</span>
     </div>
     ${w ? `<p class="detail-row">🚶 <b>회사에서 도보</b> 약 ${w.min}분 · ${w.meters}m <span class="est">(직선거리 기준 추정)</span></p>` : ""}
     ${r.recommendedMenu ? `<p class="detail-row">👍 <b>추천메뉴</b> · ${escapeHtml(r.recommendedMenu)}</p>` : ""}
