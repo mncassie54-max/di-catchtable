@@ -130,7 +130,10 @@ function selectPlace(p) {
   const addr = p.road_address_name || p.address_name;
   document.getElementById(pickerCfg.addressOutId).textContent = "📍 " + addr;
 
-  pickerCfg.onSelect({ lat, lng, address: addr, placeName: p.place_name, placeUrl: p.place_url || "" });
+  pickerCfg.onSelect({
+    lat, lng, address: addr, placeName: p.place_name,
+    placeUrl: p.place_url || "", phone: p.phone || "",
+  });
 }
 
 // 상세 모달: 단일 맛집 위치를 보여주는 지도

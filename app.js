@@ -272,7 +272,10 @@ async function setupMap() {
       resultsId: "placeResults",
       miniMapId: "pickerMap",
       addressOutId: "selectedAddr",
-      onSelect: (loc) => { selectedLocation = loc; },
+      onSelect: (loc) => {
+        selectedLocation = loc;
+        if (loc.phone) document.getElementById("fPhone").value = loc.phone;
+      },
     });
     document.getElementById("locationField").classList.remove("hidden");
     mapReady = true;
