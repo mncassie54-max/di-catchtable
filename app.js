@@ -34,11 +34,20 @@ function categoryColor(cat) {
   return { bg: `hsl(${h}, 70%, 92%)`, fg: `hsl(${h}, 55%, 38%)` };
 }
 
+// 맛집의 카테고리 목록 (신규: categories 배열 / 기존: category 문자열 호환)
+function getCategories(r) {
+  if (Array.isArray(r.categories) && r.categories.length) return r.categories;
+  if (r.category) return [r.category];
+  return ["기타"];
+}
+
 // 기본 카테고리 + 등록된 맛집들이 쓰는 커스텀 카테고리(중복 제거)
 function allCategories() {
   const cats = [...DEFAULT_CATEGORIES];
   allRestaurants.forEach((r) => {
-    if (r.category && !cats.includes(r.category)) cats.push(r.category);
+    getCategories(r).forEach((cat) => {
+      if (cat && !cats.includes(cat)) cats.push(cat);
+    });
   });
   return cats;
 }
@@ -47,23 +56,56 @@ const listEl = document.getElementById("list");
 const resultCountEl = document.getElementById("resultCount");
 const filterCategory = document.getElementById("filterCategory");
 const resetFilterBtn = document.getElementById("resetFilterBtn");
-const fCategory = document.getElementById("fCategory");
+const catChips = document.getElementById("catChips");
 const fCategoryNew = document.getElementById("fCategoryNew");
+let selectedCategories = [];  // 등록/수정 모달에서 선택된 카테고리들
 
-// 카테고리 select(필터 + 등록폼)을 현재 카테고리 목록으로 다시 채움
+// 필터 카테고리 select를 현재 카테고리 목록으로 다시 채움
 function renderCategoryOptions() {
   const cats = allCategories();
-  const opt = (c) => `<option value="${escapeHtml(c)}">${CATEGORY_EMOJI[c] || "🍴"} ${escapeHtml(c)}</option>`;
-
   const curFilter = filterCategory.value;
-  filterCategory.innerHTML = `<option value="">🍽️ 카테고리 전체</option>` + cats.map(opt).join("");
+  filterCategory.innerHTML = `<option value="">🍽️ 카테고리 전체</option>` +
+    cats.map((c) => `<option value="${escapeHtml(c)}">${CATEGORY_EMOJI[c] || "🍴"} ${escapeHtml(c)}</option>`).join("");
   filterCategory.value = curFilter;
-
-  // 등록/수정 모달이 열려있는 동안엔 사용자의 선택을 건드리지 않음
-  if (addModal.classList.contains("hidden")) {
-    fCategory.innerHTML = cats.map(opt).join("") + `<option value="__new__">➕ 직접 입력…</option>`;
-  }
 }
+
+// 등록/수정 모달의 카테고리 칩(복수 선택) 렌더
+function renderCatChips() {
+  const cats = [...new Set([...allCategories(), ...selectedCategories])];
+  catChips.innerHTML = cats.map((cat) => {
+    const on = selectedCategories.includes(cat);
+    const c = categoryColor(cat);
+    const style = on ? ` style="background:${c.bg};color:${c.fg};border-color:transparent"` : "";
+    return `<button type="button" class="cat-chip${on ? " selected" : ""}" data-cat="${escapeHtml(cat)}"${style}>${CATEGORY_EMOJI[cat] || "🍴"} ${escapeHtml(cat)}</button>`;
+  }).join("") + `<button type="button" class="cat-chip add-chip" id="catAddChip">➕ 직접 입력</button>`;
+}
+
+catChips.addEventListener("click", (e) => {
+  const chip = e.target.closest(".cat-chip");
+  if (!chip) return;
+  if (chip.id === "catAddChip") {
+    fCategoryNew.classList.toggle("hidden");
+    if (!fCategoryNew.classList.contains("hidden")) fCategoryNew.focus();
+    return;
+  }
+  const cat = chip.dataset.cat;
+  if (selectedCategories.includes(cat)) {
+    selectedCategories = selectedCategories.filter((x) => x !== cat);
+  } else {
+    selectedCategories.push(cat);
+  }
+  renderCatChips();
+});
+
+fCategoryNew.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  const v = fCategoryNew.value.trim();
+  if (v && !selectedCategories.includes(v)) selectedCategories.push(v);
+  fCategoryNew.value = "";
+  fCategoryNew.classList.add("hidden");
+  renderCatChips();
+});
 
 let allRestaurants = [];  // 메모리 캐시 (Firestore 최신 스냅샷)
 let mapReady = false;
@@ -71,7 +113,7 @@ let selectedLocation = null;  // 등록 모달에서 선택한 위치
 
 function applyFilters(items) {
   const category = filterCategory.value;
-  return items.filter((r) => !category || r.category === category);
+  return items.filter((r) => !category || getCategories(r).includes(category));
 }
 
 function escapeHtml(s) {
@@ -105,13 +147,13 @@ function render() {
   } else {
     listEl.innerHTML = filtered.map((r) => {
       const w = walkInfo(r.lat, r.lng);
-      const c = categoryColor(r.category);
+      const cats = getCategories(r);
       return `
       <article class="card" data-id="${r.id}">
-        <span class="emoji">${CATEGORY_EMOJI[r.category] || "🍴"}</span>
+        <span class="emoji">${CATEGORY_EMOJI[cats[0]] || "🍴"}</span>
         <h3>${escapeHtml(r.name)}</h3>
         <div class="tags">
-          <span class="tag tag-cat" style="background:${c.bg};color:${c.fg}">${escapeHtml(r.category)}</span>
+          ${cats.map((cat) => { const c = categoryColor(cat); return `<span class="tag tag-cat" style="background:${c.bg};color:${c.fg}">${escapeHtml(cat)}</span>`; }).join("")}
         </div>
         ${w ? `<p class="walk">🚶 도보 약 ${w.min}분 · ${w.meters}m</p>` : ""}
         ${r.recommendedMenu ? `<p class="rec">👍 ${escapeHtml(r.recommendedMenu)}</p>` : ""}
@@ -164,6 +206,8 @@ function openModal() {
   editingId = null;
   modalTitle.textContent = "맛집 등록 🍳";
   submitBtn.textContent = "저장";
+  selectedCategories = [];
+  renderCatChips();
   fCategoryNew.classList.add("hidden");
   addModal.classList.remove("hidden");
   document.getElementById("fName").focus();
@@ -177,7 +221,8 @@ function openEditModal(r) {
   modalTitle.textContent = "맛집 수정 ✏️";
   submitBtn.textContent = "수정 저장";
   document.getElementById("fName").value = r.name || "";
-  fCategory.value = r.category || "기타";
+  selectedCategories = getCategories(r).slice();
+  renderCatChips();
   fCategoryNew.classList.add("hidden");
   document.getElementById("fRecommend").value = r.recommendedMenu || "";
   document.getElementById("fMemo").value = r.memo || "";
@@ -199,20 +244,11 @@ function closeModal() {
   addModal.classList.add("hidden");
   addForm.reset();
   fCategoryNew.classList.add("hidden");
+  selectedCategories = [];
   editingId = null;
   selectedLocation = null;
   if (mapReady) map.resetPicker();
 }
-
-// 카테고리에서 '직접 입력' 선택 시 입력칸 표시
-fCategory.addEventListener("change", () => {
-  if (fCategory.value === "__new__") {
-    fCategoryNew.classList.remove("hidden");
-    fCategoryNew.focus();
-  } else {
-    fCategoryNew.classList.add("hidden");
-  }
-});
 
 openAddBtn.addEventListener("click", openModal);
 cancelAddBtn.addEventListener("click", closeModal);
@@ -224,11 +260,14 @@ addForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const name = document.getElementById("fName").value.trim();
   if (!name) return;
-  let category = fCategory.value;
-  if (category === "__new__") category = fCategoryNew.value.trim() || "기타";
+  const categories = [...selectedCategories];
+  if (!categories.length) {
+    alert("카테고리를 1개 이상 선택해주세요.");
+    return;
+  }
   const data = {
     name,
-    category,
+    categories,
     recommendedMenu: document.getElementById("fRecommend").value.trim(),
     memo: document.getElementById("fMemo").value.trim(),
   };
@@ -291,11 +330,12 @@ function openDetail(id) {
       ).join("")
     : `<li class="rv-empty">아직 후기가 없어요. 첫 후기를 남겨보세요! 🙌</li>`;
   openDetailId = id;
+  const cats = getCategories(r);
   detailBody.innerHTML = `
-    <span class="emoji">${CATEGORY_EMOJI[r.category] || "🍴"}</span>
+    <span class="emoji">${CATEGORY_EMOJI[cats[0]] || "🍴"}</span>
     <h2>${escapeHtml(r.name)}</h2>
     <div class="tags">
-      <span class="tag tag-cat" style="background:${categoryColor(r.category).bg};color:${categoryColor(r.category).fg}">${escapeHtml(r.category)}</span>
+      ${cats.map((cat) => { const c = categoryColor(cat); return `<span class="tag tag-cat" style="background:${c.bg};color:${c.fg}">${escapeHtml(cat)}</span>`; }).join("")}
     </div>
     ${w ? `<p class="detail-row">🚶 <b>회사에서 도보</b> 약 ${w.min}분 · ${w.meters}m <span class="est">(직선거리 기준 추정)</span></p>` : ""}
     ${r.recommendedMenu ? `<p class="detail-row">👍 <b>추천메뉴</b> · ${escapeHtml(r.recommendedMenu)}</p>` : ""}

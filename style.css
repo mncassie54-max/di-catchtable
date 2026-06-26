@@ -46,7 +46,18 @@ h1, h2 { font-family: "Jua", "Noto Sans KR", sans-serif; font-weight: 400; }
   padding: 12px 16px; border-radius: 14px; font-size: 14px; text-align: center;
 }
 .map-notice.hidden, .config-warning.hidden, .modal.hidden, .location-field.hidden { display: none; }
-.cat-new { margin-top: 8px; }
+.cat-label { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.cat-hint { font-size: 12px; color: var(--muted); }
+.cat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.cat-chip {
+  padding: 7px 13px; border-radius: 999px; border: 1px solid var(--border);
+  background: #fffdfb; font-size: 13px; cursor: pointer; font-family: inherit;
+  color: var(--ink); transition: border-color .12s, transform .1s;
+}
+.cat-chip:hover { border-color: var(--accent); }
+.cat-chip.selected { font-weight: 700; }
+.cat-chip.add-chip { color: var(--accent-dark); border-style: dashed; }
+.cat-new { width: 100%; margin-bottom: 12px; }
 .cat-new.hidden { display: none; }
 .map-info {
   padding: 6px 12px; font-size: 13px; font-weight: 700; white-space: nowrap;

@@ -58,20 +58,9 @@
           <p id="selectedAddr" class="selected-addr"></p>
         </fieldset>
 
-        <label>카테고리
-          <select id="fCategory">
-            <option value="한식">🍚 한식</option>
-            <option value="중식">🍜 중식</option>
-            <option value="일식">🍣 일식</option>
-            <option value="양식">🍝 양식</option>
-            <option value="분식">🥟 분식</option>
-            <option value="카페">☕ 카페</option>
-            <option value="단체예약">🍻 단체예약</option>
-            <option value="기타">🍴 기타</option>
-            <option value="__new__">➕ 직접 입력…</option>
-          </select>
-          <input type="text" id="fCategoryNew" class="cat-new hidden" placeholder="새 카테고리 (예: 베트남식)" />
-        </label>
+        <div class="cat-label">카테고리 <span class="cat-hint">(여러 개 선택 가능)</span></div>
+        <div id="catChips" class="cat-chips"></div>
+        <input type="text" id="fCategoryNew" class="cat-new hidden" placeholder="새 카테고리 입력 후 Enter" />
         <label>추천메뉴
           <input type="text" id="fRecommend" placeholder="예: 마라탕, 꿔바로우" />
         </label>
