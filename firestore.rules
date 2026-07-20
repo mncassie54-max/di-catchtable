@@ -5,5 +5,9 @@ service cloud.firestore {
     match /restaurants/{doc} {
       allow read, write: if true;
     }
+    // polls 컬렉션: 누구나 읽기/쓰기 (무기명 팀 투표 용도)
+    match /polls/{doc} {
+      allow read, write: if true;
+    }
   }
 }

@@ -12,7 +12,10 @@
 <body>
   <header class="topbar">
     <h1 class="logo">🍱 오뭐드 <span class="tagline">오늘 뭐 드실래요?</span></h1>
-    <button id="openAddBtn" class="btn-primary">＋ 맛집 등록</button>
+    <div class="topbar-actions">
+      <button id="openVoteBtn" class="btn-ghost">🗳️ 투표</button>
+      <button id="openAddBtn" class="btn-primary">＋ 맛집 등록</button>
+    </div>
   </header>
 
   <section class="map-section">
@@ -21,6 +24,7 @@
   </section>
 
   <section class="filters">
+    <input type="search" id="searchInput" class="search-input" placeholder="🔍 이름·메뉴·후기·카테고리 검색" />
     <select id="filterCategory" aria-label="카테고리 필터">
       <option value="">🍽️ 카테고리 전체</option>
       <option value="한식">🍚 한식</option>
@@ -80,6 +84,14 @@
     <div class="modal-content detail-content">
       <button type="button" class="modal-close" id="detailClose" aria-label="닫기">✕</button>
       <div id="detailBody"></div>
+    </div>
+  </div>
+
+  <!-- 투표 모달 -->
+  <div id="voteModal" class="modal hidden">
+    <div class="modal-content vote-content">
+      <button type="button" class="modal-close" id="voteClose" aria-label="닫기">✕</button>
+      <div id="voteBody"></div>
     </div>
   </div>
 

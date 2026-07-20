@@ -1,6 +1,7 @@
 import { db, isConfigured } from "./firebase-config.js";
 import { isMapConfigured, COMPANY } from "./map-config.js";
 import * as map from "./map.js";
+import { setupVoting } from "./poll.js";
 import {
   collection, onSnapshot, query, orderBy,
   addDoc, deleteDoc, updateDoc, doc, serverTimestamp, arrayUnion,
@@ -56,6 +57,21 @@ const listEl = document.getElementById("list");
 const resultCountEl = document.getElementById("resultCount");
 const filterCategory = document.getElementById("filterCategory");
 const resetFilterBtn = document.getElementById("resetFilterBtn");
+const searchInput = document.getElementById("searchInput");
+
+// 키워드가 이름·메뉴·메모·카테고리·주소·후기 중 하나라도 포함되면 매치
+function matchesSearch(r, term) {
+  if (!term) return true;
+  const hay = [
+    r.name,
+    r.recommendedMenu,
+    r.memo,
+    r.address,
+    ...getCategories(r),
+    ...(Array.isArray(r.reviews) ? r.reviews.map((rv) => rv.text) : []),
+  ].join(" ").toLowerCase();
+  return hay.includes(term.toLowerCase());
+}
 const catChips = document.getElementById("catChips");
 const fCategoryNew = document.getElementById("fCategoryNew");
 let selectedCategories = [];  // 등록/수정 모달에서 선택된 카테고리들
@@ -113,7 +129,10 @@ let selectedLocation = null;  // 등록 모달에서 선택한 위치
 
 function applyFilters(items) {
   const category = filterCategory.value;
-  return items.filter((r) => !category || getCategories(r).includes(category));
+  const term = searchInput.value.trim();
+  return items.filter((r) =>
+    (!category || getCategories(r).includes(category)) && matchesSearch(r, term)
+  );
 }
 
 function escapeHtml(s) {
@@ -166,8 +185,10 @@ function render() {
 }
 
 filterCategory.addEventListener("change", render);
+searchInput.addEventListener("input", render);
 resetFilterBtn.addEventListener("click", () => {
   filterCategory.value = "";
+  searchInput.value = "";
   render();
 });
 
@@ -443,6 +464,14 @@ function init() {
     resultCountEl.textContent = "";
   } else {
     subscribe();
+    setupVoting({
+      getRestaurants: () => allRestaurants,
+      escapeHtml,
+      categoryColor,
+      CATEGORY_EMOJI,
+      getCategories,
+      walkInfo,
+    });
   }
   setupMap();
 }
