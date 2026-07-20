@@ -314,6 +314,10 @@ h1, h2 { font-family: "Jua", "Noto Sans KR", sans-serif; font-weight: 400; }
   margin: 0; padding: 0; accent-color: var(--accent);
 }
 .vote-pick-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.vote-cand-search { margin-bottom: 10px; }
+.vote-pick-row[hidden] { display: none; }
+.vote-pick-empty { text-align: center; color: var(--muted); font-size: 13px; padding: 16px 8px; margin: 0; }
+.vote-pick-empty[hidden] { display: none; }
 
 .config-warning {
   position: fixed; bottom: 16px; left: 16px; right: 16px; max-width: 600px; margin: 0 auto;

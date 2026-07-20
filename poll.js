@@ -38,6 +38,7 @@ export function setupVoting(dependencies) {
   voteClose.addEventListener("click", closeVote);
   voteModal.addEventListener("click", (e) => { if (e.target === voteModal) closeVote(); });
   voteBody.addEventListener("click", onBodyClick);
+  voteBody.addEventListener("input", onBodySearch);
 
   // #vote 링크로 들어온 경우, 폴이 로드되면 자동으로 모달을 연다
   if (location.hash === "#vote") autoOpenPending = true;
@@ -215,15 +216,16 @@ function candidateChecklist(excludeIds) {
   if (!list.length) {
     return `<p class="vote-empty">추가할 수 있는 맛집이 없어요. 먼저 맛집을 등록해주세요.</p>`;
   }
-  return `<div class="vote-picklist">` + list.map((r) => {
+  const rows = list.map((r) => {
     const cats = getCategories(r);
     const emoji = CATEGORY_EMOJI[cats[0]] || "🍴";
     const tags = cats.map((cat) => {
       const c = categoryColor(cat);
       return `<span class="tag tag-cat" style="background:${c.bg};color:${c.fg}">${escapeHtml(cat)}</span>`;
     }).join("");
+    const nameLower = escapeHtml(String(r.name || "").toLowerCase());
     return `
-      <label class="vote-pick-row">
+      <label class="vote-pick-row" data-name="${nameLower}">
         <input type="checkbox" class="vote-pick" value="${escapeHtml(r.id)}" />
         <span class="vote-emoji">${emoji}</span>
         <span class="vote-pick-text">
@@ -231,7 +233,24 @@ function candidateChecklist(excludeIds) {
           <span class="vote-tags">${tags}</span>
         </span>
       </label>`;
-  }).join("") + `</div>`;
+  }).join("");
+  return `
+    <input type="text" class="vote-cand-search" placeholder="🔍 맛집 이름 검색" />
+    <div class="vote-picklist">${rows}<p class="vote-pick-empty" hidden>검색 결과가 없어요 🥲</p></div>`;
+}
+
+// 후보 체크리스트에서 이름으로 필터 (다시 그리지 않고 숨김/표시 → 체크·포커스 유지)
+function onBodySearch(e) {
+  if (!e.target.classList.contains("vote-cand-search")) return;
+  const term = e.target.value.trim().toLowerCase();
+  let shown = 0;
+  voteBody.querySelectorAll(".vote-pick-row").forEach((row) => {
+    const match = !term || (row.dataset.name || "").includes(term);
+    row.hidden = !match;
+    if (match) shown++;
+  });
+  const empty = voteBody.querySelector(".vote-pick-empty");
+  if (empty) empty.hidden = shown > 0;
 }
 
 function pickedIds() {
